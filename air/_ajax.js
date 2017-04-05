@@ -29,16 +29,23 @@ _ajax.prototype = {
         return this;
     },
     html: function (html) {
-        if(this.dom && html){ this.dom.innerHTML = html; }
+        if(this.dom && (html || html==="")){
+            this.dom.innerHTML = html;
+        }
         return this.dom.innerHTML;
     },
-    text: function () {
-        if(this.dom){ return this.dom.textContent || this.dom.innerText; }
-        return this;
+    text: function (text) {
+        if(this.dom && (text || text==="")){
+            this.dom.textContent = text;
+            this.dom.innerText = text;
+        }
+        return this.dom.textContent || this.dom.innerText;
     },
-    val: function () {
-        if(this.dom){ return this.dom.value; }
-        return this;
+    val: function (val) {
+        if(this.dom && (val || val==="")){
+            this.dom.value = val;
+        }
+        return this.dom.value;
     },
     remove: function () {
         if(this.dom){
@@ -130,6 +137,7 @@ _ajax.prototype = {
     setCookie: function (key, value, expires) {
         var date = new Date(),
             exp = '';
+        expires = expires || (30*24*60*60*1000);
         if (typeof expires === 'number') {
             date.setMinutes(date.getMinutes() + expires);
             exp = "; expires=" + date.toUTCString();
@@ -147,6 +155,7 @@ _ajax.prototype = {
         var cval = this.getCookie(key);
         if(cval!=null){
             document.cookie= key + "="+cval+";expires="+exp.toGMTString();
+            document.cookie = key + '=0;expires=' + new Date(0).toUTCString() + '; path=/; domain=' + document.domain;
         }
     },
     // 清除该域名下所有cookie
@@ -157,6 +166,41 @@ _ajax.prototype = {
                 document.cookie = keys[i] + '=0;expires=' + new Date(0).toUTCString() + '; path=/; domain=' + document.domain;
             }
         }
+    },
+    // 是否启动调试模式
+    debug: function (key){
+        if(key==="false"){
+            this.delCookie("debug");
+            console.log("关闭调试模式");
+            return false;
+        }else{
+            this.setCookie("debug","true");
+            console.log("启动调试模式");
+            return true;
+        }
+    },
+    // 打印调试信息
+    log: function (msg){
+        if(this.getCookie("debug")==="true"){
+            console.log(msg);
+        }
+    },
+    // 姓名脱敏 默认后脱敏 **会
+    nameDese: function (str,type){
+        typeof str === 'number' && (str += '');
+        if(type==="pre"){
+            return str.substring(0,1) + '**';
+        }else{
+            return '**' + str.substr(str.length - 1);
+        }
+    },
+    // 手机号脱敏
+    desensitizePhone: function (phone) {
+        var p = phone.toString();
+        if (p.length >= 11) {
+            return p.substr(0, 3) + '****' + p.substr(p.length - 4);
+        }
+        return p;
     },
     // 获取url参数
     getUrlQueryString: function (name) {
@@ -191,7 +235,7 @@ _ajax.prototype = {
                 if (status >= 200 && status < 300) {
                     options.success && options.success(xhr.responseText, xhr.responseXML);
                 } else {
-                    options.fail && options.fail(status);
+                    options.fail && options.fail(xhr.responseText, xhr.responseXML);
                 }
             }
         };
